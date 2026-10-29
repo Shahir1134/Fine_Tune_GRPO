@@ -1,3 +1,4 @@
+
 # GRPO from Scratch: Understanding Reinforcement Learning for Reasoning Models
 
 **A PyTorch implementation and learning project exploring Group Relative Policy Optimization (GRPO) for mathematical reasoning.**
@@ -57,32 +58,15 @@ PPO was introduced by John Schulman and colleagues in 2017.
 
 Its clipped surrogate objective is:
 
-$$
-\begin{aligned}
-J_{\mathrm{clip}}(\theta)
-=
-\mathbb{E}\Bigg[
-\frac{1}{G}\sum_{i=1}^{G}
-\frac{1}{|o_i|}\sum_t
-\min\Big(
-&\rho_{i,t}(\theta)\hat{A}_{i,t},\\
-&\mathrm{clip}\big(
-\rho_{i,t}(\theta),
-1-\epsilon,
-1+\epsilon
-\big)\hat{A}_{i,t}
-\Big)
-\Bigg]
-\end{aligned}
-$$
+```math
+J_{\mathrm{PPO}}(\theta) = \mathbb{E}_t \left[ \min\left( r_t(\theta)\,\hat{A}_t,\ \mathrm{clip}\left( r_t(\theta),\, 1-\epsilon,\, 1+\epsilon \right)\hat{A}_t \right) \right]
+```
 
 The probability ratio is:
 
-$$
-r_t(\theta)=
-\frac{\pi_\theta(a_t\mid s_t)}
-{\pi_{\theta_{\mathrm{old}}}(a_t\mid s_t)}
-$$
+```math
+r_t(\theta) = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\mathrm{old}}}(a_t \mid s_t)}
+```
 
 Where:
 
@@ -118,43 +102,37 @@ The following equations summarize the main components of the original GRPO formu
 
 For a question $q$, sample a group of $G$ responses from the old policy:
 
-$$
-\{o_1,o_2,\ldots,o_G\}
-\sim
-\pi_{\theta_{\mathrm{old}}}(\cdot\mid q)
-$$
+```math
+\{o_1, o_2, \ldots, o_G\} \sim \pi_{\theta_{\mathrm{old}}}(\cdot \mid q)
+```
 
 Each response receives a reward:
 
-$$
-r_1,r_2,\ldots,r_G
-$$
+```math
+r_1, r_2, \ldots, r_G
+```
 
 The reward may be based on exact-answer correctness, a format constraint, or another task-specific criterion.
 
 ### 2. Group mean
 
-$$
-\bar{r}=\frac{1}{G}\sum_{i=1}^{G}r_i
-$$
+```math
+\bar{r} = \frac{1}{G} \sum_{i=1}^{G} r_i
+```
 
 This is the average reward across the sampled responses.
 
 ### 3. Group standard deviation
 
-$$
-\sigma_r=
-\sqrt{
-\frac{1}{G}\sum_{i=1}^{G}(r_i-\bar{r})^2
-}
-$$
+```math
+\sigma_r = \sqrt{ \frac{1}{G} \sum_{i=1}^{G} (r_i - \bar{r})^2 }
+```
 
 ### 4. Normalized advantage
 
-$$
-\hat{A}_i=
-\frac{r_i-\bar{r}}{\sigma_r+\delta}
-$$
+```math
+\hat{A}_i = \frac{r_i - \bar{r}}{\sigma_r + \delta}
+```
 
 Where:
 
@@ -171,14 +149,9 @@ When rewards are identical across all responses, the group has no relative rewar
 
 For response $i$ at token position $t$:
 
-$$
-\rho_{i,t}(\theta)=
-\frac{
-\pi_\theta(o_{i,t}\mid q,o_{i,<t})
-}{
-\pi_{\theta_{\mathrm{old}}}(o_{i,t}\mid q,o_{i,<t})
-}
-$$
+```math
+\rho_{i,t}(\theta) = \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\mathrm{old}}}(o_{i,t} \mid q, o_{i,<t})}
+```
 
 This compares the probability of a sampled token under the current policy with its probability under the old policy.
 
@@ -186,24 +159,9 @@ This compares the probability of a sampled token under the current policy with i
 
 A simplified token-level GRPO policy objective is:
 
-$$
-\begin{aligned}
-J_{\mathrm{clip}}(\theta)
-=
-\mathbb{E}\Bigg[
-\frac{1}{G}\sum_{i=1}^{G}
-\frac{1}{|o_i|}\sum_t
-\min\Big(
-&\rho_{i,t}(\theta)\hat{A}_{i,t},\\
-&\operatorname{clip}\big(
-\rho_{i,t}(\theta),
-1-\epsilon,
-1+\epsilon
-\big)\hat{A}_{i,t}
-\Big)
-\Bigg]
-\end{aligned}
-$$
+```math
+J_{\mathrm{clip}}(\theta) = \mathbb{E}\left[ \frac{1}{G} \sum_{i=1}^{G} \frac{1}{|o_i|} \sum_{t=1}^{|o_i|} \min\left( \rho_{i,t}(\theta)\,\hat{A}_i,\ \mathrm{clip}\left( \rho_{i,t}(\theta),\, 1-\epsilon,\, 1+\epsilon \right)\hat{A}_i \right) \right]
+```
 
 The clipping operation limits the incentive for excessively large policy probability-ratio changes.
 
@@ -213,36 +171,25 @@ The original GRPO formulation includes a penalty discouraging the trained policy
 
 A commonly used estimator is:
 
-$$
-D_{\mathrm{KL}}^{\mathrm{est}}=
-\frac{\pi_{\mathrm{ref}}}{\pi_\theta}
--
-\log\left(
-\frac{\pi_{\mathrm{ref}}}{\pi_\theta}
-\right)-1
-$$
+```math
+D_{\mathrm{KL}}^{\mathrm{est}} = \frac{\pi_{\mathrm{ref}}}{\pi_\theta} - \log\left( \frac{\pi_{\mathrm{ref}}}{\pi_\theta} \right) - 1
+```
 
 The probabilities are evaluated for sampled tokens under the relevant conditioning context.
 
 The complete objective is:
 
-$$
-J_{\mathrm{GRPO}}(\theta)=
-J_{\mathrm{clip}}(\theta)
--
-\beta\mathbb{E}\left[
-D_{\mathrm{KL}}^{\mathrm{est}}
-\right]
-$$
+```math
+J_{\mathrm{GRPO}}(\theta) = J_{\mathrm{clip}}(\theta) - \beta\, \mathbb{E}\left[ D_{\mathrm{KL}}^{\mathrm{est}} \right]
+```
 
 Here, $\beta$ controls the strength of reference-policy regularization.
 
 Since this objective is maximized, an implementation using a minimization-based optimizer can minimize its negative:
 
-$$
-\mathcal{L}_{\mathrm{GRPO}}(\theta)=
--J_{\mathrm{GRPO}}(\theta)
-$$
+```math
+\mathcal{L}_{\mathrm{GRPO}}(\theta) = -J_{\mathrm{GRPO}}(\theta)
+```
 
 The exact loss in a codebase depends on its implementation choices, including token masks, importance-sampling corrections, and loss reduction.
 
@@ -342,7 +289,7 @@ Careful reward design, held-out evaluation, and reproducibility are essential.
 
 ## Learning Resources
 
-This project is also part of my learning journey through **_Build a Reasoning Model (From Scratch)_ by Sebastian Raschka**.
+This project is also part of my learning journey through ***Build a Reasoning Model (From Scratch)*** by Sebastian Raschka.
 
 I'm exploring the foundations of reasoning models, connecting the underlying theory to practical implementations in PyTorch. Working on GRPO helps me connect concepts such as reward signals, policy optimization, advantage estimation, and KL regularization with the broader process of training reasoning-capable language models.
 
