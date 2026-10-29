@@ -58,15 +58,22 @@ PPO was introduced by John Schulman and colleagues in 2017.
 Its clipped surrogate objective is:
 
 $$
-J_{\mathrm{PPO}}(\theta)=
-\mathbb{E}_t\left[
-\min\left(
-r_t(\theta)\hat{A}_t,\,
-\operatorname{clip}\left(
-r_t(\theta),1-\epsilon,1+\epsilon
-\right)\hat{A}_t
-\right)
-\right]
+\begin{aligned}
+J_{\mathrm{clip}}(\theta)
+=
+\mathbb{E}\Bigg[
+\frac{1}{G}\sum_{i=1}^{G}
+\frac{1}{|o_i|}\sum_t
+\min\Big(
+&\rho_{i,t}(\theta)\hat{A}_{i,t},\\
+&\mathrm{clip}\big(
+\rho_{i,t}(\theta),
+1-\epsilon,
+1+\epsilon
+\big)\hat{A}_{i,t}
+\Big)
+\Bigg]
+\end{aligned}
 $$
 
 The probability ratio is:
